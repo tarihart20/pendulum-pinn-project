@@ -7,18 +7,14 @@ import torch
 from torch import nn
 import matplotlib.pyplot as plt
 
-#import model
 from model.model import PendulumNN
 
-# setting gravity and seed for reproducibility
 G = 9.81
 SEED = 7
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 
-#data loading and cleaning function
 def load_data(csv_path):
-    # latin1 handles the degree symbol in the uploaded CSV.
     df = pd.read_csv(csv_path, encoding="latin1")
     df.columns = [str(c).strip() for c in df.columns]
 
@@ -26,15 +22,12 @@ def load_data(csv_path):
     time_col = next(c for c in df.columns if "period of 10" in c.lower())
     count_col = next(c for c in df.columns if "number of osc" in c.lower())
 
-    # Coerce section headings and theoretical rows to NaN, then keep measured trials.
     df[length_col] = pd.to_numeric(df[length_col], errors="coerce")
     df[time_col] = pd.to_numeric(df[time_col], errors="coerce")
     df[count_col] = pd.to_numeric(df[count_col], errors="coerce")
     measured = df.dropna(subset=[length_col, time_col, count_col]).copy()
     measured = measured[(measured[length_col] > 0) & (measured[count_col] > 0)]
 
-    # Values 0.36 and 0.27 are physically consistent with meters, despite the
-    # CSV header saying cm. Convert total elapsed time to seconds per oscillation.
     lengths_m = measured[length_col].to_numpy(dtype=np.float32)
     periods_s = (measured[time_col] / measured[count_col]).to_numpy(dtype=np.float32)
     return lengths_m, periods_s, measured
@@ -58,8 +51,6 @@ def main():
     print(f"Lengths (m): {lengths}")
     print(f"Measured periods (s/oscillation): {periods}")
 
-    # Use all observations for this tiny demonstration dataset. For meaningful
-    # evaluation, collect more lengths and hold out independent test trials.
     L = torch.tensor(lengths.reshape(-1, 1), dtype=torch.float32)
     T = torch.tensor(periods.reshape(-1, 1), dtype=torch.float32)
 
@@ -98,7 +89,6 @@ def main():
     torch.save(model.state_dict(), "pendulum_nn.pt")
     print("\nSaved trained weights to pendulum_nn.pt")
 
-    # Plot measured data, NN, and ideal small-angle theory over the observed range.
     grid = np.linspace(max(0.01, lengths.min() * 0.8), lengths.max() * 1.2, 250)
     grid_t = torch.tensor(grid.reshape(-1, 1), dtype=torch.float32)
     with torch.no_grad():
